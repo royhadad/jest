@@ -119,9 +119,8 @@ export interface AsymmetricMatchers {
 }
 
 // if T is a function, return its parameters array type, otherwise return an unknown array type
-type ConditionalFunctionParameters<T> = T extends (
-  ...args: Array<unknown>
-) => unknown
+type UnknownFunction = (...args: Array<unknown>) => unknown;
+type ConditionalFunctionParameters<T> = T extends UnknownFunction
   ? Parameters<T>
   : Array<unknown>;
 
@@ -138,7 +137,20 @@ type PromiseMatchers<T = unknown> = {
   resolves: Matchers<Promise<void>> & Inverse<Matchers<Promise<void>, T>>;
 };
 
-export interface Matchers<R extends void | Promise<void>, T = unknown> {
+type FunctionMatchers<
+  R extends void | Promise<void>,
+  T extends UnknownFunction,
+> = {
+  a: R;
+  b: T;
+};
+
+type NonFunctionMatchers<R extends void | Promise<void>, T> = {
+  c: R;
+  d: T;
+};
+
+export type Matchers<R extends void | Promise<void>, T = unknown> = {
   /**
    * Ensures the last call to a mock function was provided specific args.
    */
@@ -348,4 +360,6 @@ export interface Matchers<R extends void | Promise<void>, T = unknown> {
    * If you want to test that a specific error is thrown inside a function.
    */
   toThrowError(expected?: unknown): R;
-}
+} & T extends UnknownFunction
+  ? FunctionMatchers<R, T> // TODO fix
+  : NonFunctionMatchers<R, T>;
